@@ -101,7 +101,7 @@ static void dirlist_append_description(struct dirlist_entry *entry, const char *
   }
 
   if (entry->description_line_count > 0) {
-    strncat(entry->description, " | ", remaining - 1U);
+    strncat(entry->description, "\n", remaining - 1U);
   }
   used_length = strlen(entry->description);
   remaining = sizeof(entry->description) - used_length;
@@ -126,7 +126,7 @@ void dirlist_init(struct dirlist_data *dirlist)
 int dirlist_load_file(const char *listing_path, struct dirlist_data *dirlist, char *error_text, int error_text_size)
 {
   FILE *handle;
-  char line[256];
+  char line[1024];
   struct dirlist_entry *current_entry;
 
   if ((listing_path == NULL) || (dirlist == NULL)) {

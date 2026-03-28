@@ -20,6 +20,13 @@ struct doorlog;
 #define UI_MODE_SOURCE 0
 #define UI_MODE_DESTINATION 1
 
+/* Small move-status screens around the live file operation. */
+void ui_show_move_progress(struct aedoor_context *door,
+                           const char *filename,
+                           const char *source_store,
+                           const char *destination_store);
+void ui_show_move_result(struct aedoor_context *door, int move_ok, const char *message);
+
 /* Drive one UI interaction loop until the caller requests an action. */
 int ui_run(const struct door_config *config,
            struct aedoor_context *door,

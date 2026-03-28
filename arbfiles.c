@@ -732,8 +732,12 @@ int main(int argc, char **argv)
     if (ui_status == UI_RESULT_MOVE) {
       const char *source_folder;
       const char *destination_folder;
+      const char *selected_filename;
       int move_status;
 
+      selected_filename = (selected_entry >= 0) && (selected_entry < g_dirlist.entry_count)
+        ? g_dirlist.entries[selected_entry].filename
+        : "(unknown)";
       source_folder = resolve_source_folder_path(&config,
                                                  &g_current_conference,
                                                  &g_dirlist,
@@ -753,6 +757,7 @@ int main(int argc, char **argv)
         error_text[sizeof(error_text) - 1U] = '\0';
         move_status = -1;
       } else {
+        ui_show_move_progress(&door, selected_filename, source_folder, destination_folder);
         move_status = file_ops_move_selected(&g_dirlist,
                                              selected_entry,
                                              source_folder,
@@ -765,10 +770,12 @@ int main(int argc, char **argv)
         doorlog_writef(&log, "Move failed: %s", error_text);
         strncpy(status_message, error_text, sizeof(status_message) - 1U);
         status_message[sizeof(status_message) - 1U] = '\0';
+        ui_show_move_result(&door, 0, error_text);
       } else {
         doorlog_write(&log, "Move completed successfully.");
         strncpy(status_message, "Move completed successfully.", sizeof(status_message) - 1U);
         status_message[sizeof(status_message) - 1U] = '\0';
+        ui_show_move_result(&door, 1, status_message);
         ui_mode = UI_MODE_SOURCE;
         selected_entry = 0;
       }

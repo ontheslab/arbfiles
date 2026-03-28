@@ -11,7 +11,7 @@ struct dirlist_entry {
   int description_line_count;
   char filename[32];
   char header_line[256];
-  char description[256];
+  char description[1024];
 };
 
 /* Parsed listing plus a little UI/debug context. */

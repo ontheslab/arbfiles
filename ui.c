@@ -15,11 +15,15 @@
 #include <string.h>
 
 #define UI_VISIBLE_ENTRIES 9
+#define UI_LIST_WIDTH 76
 #define UI_PREVIEW_WIDTH 74
 #define UI_PREVIEW_LINES 2
+#define UI_MODAL_DESCRIPTION_WIDTH 79
 #define UI_MODAL_BODY_LINES 16
 
 /* Low-level UI helpers */
+static void ui_clear_screen(struct aedoor_context *door);
+
 static void ui_set_error(char *error_text, int error_text_size, const char *message)
 {
   if ((error_text == NULL) || (error_text_size <= 0) || (message == NULL)) {
@@ -48,6 +52,49 @@ static int ui_wait_for_key(struct aedoor_context *door, long *key_value)
     }
     Delay(2);
   }
+}
+
+void ui_show_move_progress(struct aedoor_context *door,
+                           const char *filename,
+                           const char *source_store,
+                           const char *destination_store)
+{
+  char line[320];
+
+  if (door == NULL) {
+    return;
+  }
+
+  ui_clear_screen(door);
+  aedoor_write_line(door, "Moving File");
+  aedoor_write_line(door, "");
+  snprintf(line, sizeof(line), "File: %s", filename != NULL ? filename : "(unknown)");
+  aedoor_write_line(door, line);
+  snprintf(line, sizeof(line), "From: %s", source_store != NULL ? source_store : "(unknown)");
+  aedoor_write_line(door, line);
+  snprintf(line, sizeof(line), "To: %s", destination_store != NULL ? destination_store : "(unknown)");
+  aedoor_write_line(door, line);
+  aedoor_write_line(door, "");
+  aedoor_write_line(door, "Please wait...");
+}
+
+void ui_show_move_result(struct aedoor_context *door, int move_ok, const char *message)
+{
+  long key_value;
+
+  if (door == NULL) {
+    return;
+  }
+
+  ui_clear_screen(door);
+  aedoor_write_line(door, move_ok ? "Move Complete" : "Move Failed");
+  aedoor_write_line(door, "");
+  if ((message != NULL) && (*message != '\0')) {
+    aedoor_write_line(door, message);
+    aedoor_write_line(door, "");
+  }
+  aedoor_write_line(door, "Press any key to return.");
+  ui_wait_for_key(door, &key_value);
 }
 
 static int ui_conference_has_hold_area(const struct door_config *config,
@@ -84,6 +131,17 @@ static int ui_has_direct_area_folder_map(const struct ae_current_conference_info
          (conference->base.dir_count > 0) &&
          (conference->base.dir_count == conference->base.download_path_count);
 }
+
+static const char *ui_get_source_store_text(const struct door_config *config,
+                                            const struct ae_current_conference_info *conference,
+                                            const struct dirlist_data *dirlist,
+                                            int active_area);
+
+static const char *ui_get_destination_store_text(const struct door_config *config,
+                                                 const struct ae_current_conference_info *conference,
+                                                 const struct dirlist_data *dirlist,
+                                                 int active_area,
+                                                 int destination_folder_index);
 
 static const char *ui_get_area_label(const struct door_config *config,
                                      const struct ae_current_conference_info *conference,
@@ -173,22 +231,19 @@ static void ui_write_preview_lines(struct aedoor_context *door, const char *text
 {
   int line_count;
   const char *cursor;
-  char chunk[UI_PREVIEW_WIDTH + 1];
+  const char *separator;
+  char line[UI_PREVIEW_WIDTH + 1];
   char output[UI_PREVIEW_WIDTH + 3];
-  int text_length;
-  int split_at;
-  int index;
+  size_t length;
+  int output_width;
 
   if (door == NULL) {
     return;
   }
 
+  output_width = UI_PREVIEW_WIDTH + 2;
   cursor = text != NULL ? text : "";
   for (line_count = 0; line_count < UI_PREVIEW_LINES; line_count++) {
-    while (*cursor == ' ') {
-      cursor++;
-    }
-
     if (*cursor == '\0') {
       if (line_count == 0) {
         aedoor_write_line(door, "  (no preview text)");
@@ -196,39 +251,67 @@ static void ui_write_preview_lines(struct aedoor_context *door, const char *text
       return;
     }
 
-    text_length = (int) strlen(cursor);
-    if (text_length <= UI_PREVIEW_WIDTH) {
-      snprintf(output, sizeof(output), "  %s", cursor);
-      aedoor_write_line(door, output);
-      return;
+    separator = strchr(cursor, '\n');
+    if (separator == NULL) {
+      length = strlen(cursor);
+    } else {
+      length = (size_t) (separator - cursor);
     }
 
-    split_at = UI_PREVIEW_WIDTH;
-    for (index = UI_PREVIEW_WIDTH; index > 0; index--) {
-      if (cursor[index] == ' ') {
-        split_at = index;
-        break;
-      }
+    if (length > UI_PREVIEW_WIDTH) {
+      length = UI_PREVIEW_WIDTH;
     }
 
-    memcpy(chunk, cursor, (size_t) split_at);
-    chunk[split_at] = '\0';
-    snprintf(output, sizeof(output), "  %s", chunk);
+    memset(output, ' ', (size_t) output_width);
+    output[output_width] = '\0';
+    output[0] = ' ';
+    output[1] = ' ';
+    memcpy(line, cursor, length);
+    line[length] = '\0';
+    if (line[0] != '\0') {
+      memcpy(output + 2, line, length);
+    }
     aedoor_write_line(door, output);
 
-    cursor += split_at;
-    while (*cursor == ' ') {
-      cursor++;
+    if (separator == NULL) {
+      return;
     }
+    cursor = separator + 1;
   }
+}
+
+static void ui_write_cut_text_line(struct aedoor_context *door, const char *text, int max_width)
+{
+  char line[UI_MODAL_DESCRIPTION_WIDTH + 1];
+  size_t length;
+
+  if ((door == NULL) || (max_width <= 0)) {
+    return;
+  }
+
+  if ((text == NULL) || (*text == '\0')) {
+    aedoor_write_line(door, " ");
+    return;
+  }
+
+  length = strlen(text);
+  if ((int) length > max_width) {
+    length = (size_t) max_width;
+  }
+
+  memcpy(line, text, length);
+  line[length] = '\0';
+  aedoor_write_line(door, line[0] != '\0' ? line : " ");
 }
 
 static void ui_write_description_text(struct aedoor_context *door, const char *text)
 {
   const char *cursor;
   const char *separator;
-  char line[256];
-  size_t length;
+  const char *line_cursor;
+  char output[UI_MODAL_DESCRIPTION_WIDTH + 2];
+  size_t line_length;
+  size_t chunk_length;
 
   if (door == NULL) {
     return;
@@ -236,30 +319,42 @@ static void ui_write_description_text(struct aedoor_context *door, const char *t
 
   cursor = text != NULL ? text : "";
   if (*cursor == '\0') {
-    aedoor_write_line(door, "  (no description text)");
+    aedoor_write_line(door, " (no description text)");
     return;
   }
 
   while (*cursor != '\0') {
-    separator = strstr(cursor, " | ");
+    separator = strchr(cursor, '\n');
     if (separator == NULL) {
-      length = strlen(cursor);
+      line_length = strlen(cursor);
     } else {
-      length = (size_t) (separator - cursor);
+      line_length = (size_t) (separator - cursor);
     }
 
-    if (length >= sizeof(line)) {
-      length = sizeof(line) - 1U;
-    }
+    if (line_length == 0U) {
+      aedoor_write_line(door, " ");
+    } else {
+      line_cursor = cursor;
+      while (line_length > 0U) {
+        chunk_length = line_length;
+        if (chunk_length > UI_MODAL_DESCRIPTION_WIDTH) {
+          chunk_length = UI_MODAL_DESCRIPTION_WIDTH;
+        }
 
-    memcpy(line, cursor, length);
-    line[length] = '\0';
-    aedoor_write_line(door, line[0] != '\0' ? line : " ");
+        output[0] = ' ';
+        memcpy(output + 1, line_cursor, chunk_length);
+        output[chunk_length + 1U] = '\0';
+        aedoor_write_line(door, output);
+
+        line_cursor += chunk_length;
+        line_length -= chunk_length;
+      }
+    }
 
     if (separator == NULL) {
       break;
     }
-    cursor = separator + 3;
+    cursor = separator + 1;
   }
 }
 
@@ -307,6 +402,7 @@ static void ui_show_full_view(struct aedoor_context *door,
 {
   long key_value;
   const struct dirlist_entry *entry;
+  const char *description_text;
   char line[320];
 
   if ((door == NULL) || (source_dirlist == NULL) || (source_dirlist->entry_count <= 0)) {
@@ -327,13 +423,110 @@ static void ui_show_full_view(struct aedoor_context *door,
            entry->filename[0] != '\0' ? entry->filename : "(unnamed)");
   aedoor_write_line(door, line);
   aedoor_write_line(door, "");
-  ui_write_description_text(door,
-                            entry->description[0] != '\0'
-                              ? entry->description
-                              : entry->header_line);
+
+  description_text = entry->description[0] != '\0' ? entry->description : entry->header_line;
+  ui_write_description_text(door, description_text);
+
   aedoor_write_line(door, "");
   aedoor_write_line(door, "Press any key to return.");
   ui_wait_for_key(door, &key_value);
+}
+
+static int ui_confirm_move(struct aedoor_context *door,
+                           const struct door_config *config,
+                           const struct ae_current_conference_info *source_conference,
+                           const struct dirlist_data *source_dirlist,
+                           const struct ae_current_conference_info *destination_conference,
+                           const struct dirlist_data *destination_dirlist,
+                           int source_area,
+                           int selected_entry,
+                           int destination_area,
+                           int destination_folder_index)
+{
+  long key_value;
+  const struct dirlist_entry *source_selected;
+  const char *source_store_text;
+  const char *destination_store_text;
+  char line[320];
+
+  if ((door == NULL) || (source_dirlist == NULL) || (source_dirlist->entry_count <= 0)) {
+    return 0;
+  }
+
+  selected_entry = ui_get_selected_index(source_dirlist, selected_entry);
+  source_selected = &source_dirlist->entries[selected_entry];
+  source_store_text = ui_get_source_store_text(config, source_conference, source_dirlist, source_area);
+  destination_store_text = ui_get_destination_store_text(config,
+                                                         destination_conference,
+                                                         destination_dirlist,
+                                                         destination_area,
+                                                         destination_folder_index);
+
+  ui_clear_screen(door);
+  aedoor_write_line(door, "Confirm Move");
+  aedoor_write_line(door, "");
+  snprintf(line,
+           sizeof(line),
+           "File: %s",
+           source_selected->filename[0] != '\0' ? source_selected->filename : "(unnamed)");
+  aedoor_write_line(door, line);
+  aedoor_write_line(door, "");
+
+  aedoor_write_line(door, "From:");
+  snprintf(line,
+           sizeof(line),
+           "  Conf %d: %s",
+           source_conference != NULL ? source_conference->base.number : 0,
+           (source_conference != NULL) && (source_conference->base.name[0] != '\0')
+             ? source_conference->base.name
+             : "(unknown)");
+  aedoor_write_line(door, line);
+  snprintf(line,
+           sizeof(line),
+           "  Area: %s",
+           ui_get_area_label(config, source_conference, source_area));
+  aedoor_write_line(door, line);
+  snprintf(line,
+           sizeof(line),
+           "  Store: %s",
+           source_store_text != NULL ? source_store_text : "(unknown)");
+  aedoor_write_line(door, line);
+  aedoor_write_line(door, "");
+
+  aedoor_write_line(door, "To:");
+  snprintf(line,
+           sizeof(line),
+           "  Conf %d: %s",
+           destination_conference != NULL ? destination_conference->base.number : 0,
+           (destination_conference != NULL) && (destination_conference->base.name[0] != '\0')
+             ? destination_conference->base.name
+             : "(unknown)");
+  aedoor_write_line(door, line);
+  snprintf(line,
+           sizeof(line),
+           "  Area: %s",
+           ui_get_area_label(config, destination_conference, destination_area));
+  aedoor_write_line(door, line);
+  snprintf(line,
+           sizeof(line),
+           "  Store: %s",
+           destination_store_text != NULL ? destination_store_text : "(unknown)");
+  aedoor_write_line(door, line);
+  aedoor_write_line(door, "");
+  aedoor_write_line(door, "Y confirm move   N cancel");
+
+  for (;;) {
+    if (ui_wait_for_key(door, &key_value) != 0) {
+      return -1;
+    }
+
+    if ((key_value == 'Y') || (key_value == 'y')) {
+      return 1;
+    }
+    if ((key_value == 'N') || (key_value == 'n') || (key_value == 27)) {
+      return 0;
+    }
+  }
 }
 
 /* Store and label helpers */
@@ -526,6 +719,9 @@ static void ui_write_source_screen(struct aedoor_context *door,
                " %c %s",
                entry_index == selected_index ? '>' : ' ',
                dirlist->entries[entry_index].header_line);
+      if ((int) strlen(line) > UI_LIST_WIDTH) {
+        line[UI_LIST_WIDTH] = '\0';
+      }
       aedoor_write_line(door, line);
     }
 
@@ -622,6 +818,9 @@ static void ui_write_destination_screen(struct aedoor_context *door,
 
       entry_index = visible_start + index;
       snprintf(line, sizeof(line), "   %s", destination_dirlist->entries[entry_index].header_line);
+      if ((int) strlen(line) > UI_LIST_WIDTH) {
+        line[UI_LIST_WIDTH] = '\0';
+      }
       aedoor_write_line(door, line);
     }
 
@@ -852,7 +1051,43 @@ int ui_run(const struct door_config *config,
     }
 
     if ((*ui_mode == UI_MODE_DESTINATION) && ((key_value == 'M') || (key_value == 'm'))) {
-      doorlog_write(log, "Caller requested a move operation.");
+      int confirm_status;
+
+      doorlog_write(log, "Caller requested move confirmation.");
+      confirm_status = ui_confirm_move(door,
+                                       config,
+                                       source_conference,
+                                       source_dirlist,
+                                       destination_conference,
+                                       destination_dirlist,
+                                       *active_area,
+                                       *selected_entry,
+                                       *destination_area,
+                                       *destination_folder_index);
+      if (confirm_status < 0) {
+        ui_set_error(error_text, error_text_size, "move confirmation input failed");
+        return -1;
+      }
+      if (confirm_status == 0) {
+        doorlog_write(log, "Caller cancelled move confirmation.");
+        ui_draw_screen(door,
+                       config,
+                       system_config,
+                       source_conference,
+                       source_dirlist,
+                       destination_conference,
+                       destination_dirlist,
+                       status_message,
+                       *ui_mode,
+                       *active_conference_index,
+                       *active_area,
+                       *selected_entry,
+                       *destination_conference_index,
+                       *destination_area,
+                       *destination_folder_index);
+        continue;
+      }
+      doorlog_write(log, "Caller confirmed move operation.");
       if (error_text != NULL) {
         error_text[0] = '\0';
       }
