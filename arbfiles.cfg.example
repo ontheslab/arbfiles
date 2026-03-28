@@ -1,0 +1,13 @@
+# arbfiles configuration
+#
+# This first discovery pass validates AEDoor launch and reads AmiExpress
+# conference metadata through CONFCONFIG. Standard Ami-Express installs
+# typically expose the BBS root through the BBS: assign, so that is the
+# default here.
+
+bbs_location=BBS:
+debug_enabled=1
+debug_log=T:arbfiles.log
+disable_paging=1
+allow_hold_area=1
+start_in_current_conf=1

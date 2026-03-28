@@ -1,0 +1,14 @@
+# Compiled Amiga binaries
+arbfiles
+
+# Runtime logs
+*.log
+
+# Live config
+arbfiles.cfg
+
+# Archived binaries and retired files
+archive/
+release/
+
+archive.ps1
