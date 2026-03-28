@@ -12,3 +12,7 @@ archive/
 release/
 
 archive.ps1
+
+# Local helper content not published with the core source
+filemgr/
+xfer_n.bat
