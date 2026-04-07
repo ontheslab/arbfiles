@@ -1,5 +1,10 @@
 # ARBFILES Change Log
 
+## 1.0.4.93
+
+- fixed the session check so ARBFILES no longer drops out straight away on
+  systems that return blank or unclear live status text
+
 ## 1.0.4.92
 
 - fixed issues found during testing and code read-through

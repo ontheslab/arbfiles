@@ -9,7 +9,7 @@ you browse file areas, inspect descriptions, move files, delete files, and use
 an optional trash area without leaving the BBS.
 
 This guide is for early testers. It focuses on what to try, what to watch for,
-and what to report for the current `1.0.4.92` beta build.
+and what to report for the current `1.0.4.93` beta build.
 
 ## Warning
 
