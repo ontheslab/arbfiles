@@ -1,5 +1,10 @@
 # ARBFILES Change Log
 
+## 1.0.4.95
+
+- prepared the first public release package
+- confirmed basic file work on Vampire hardware
+
 ## 1.0.4.93
 
 - fixed the session check so ARBFILES no longer drops out straight away on
