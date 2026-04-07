@@ -1,5 +1,7 @@
 # ARBFILES Beta Test Guide
 
+Document version: `1.00`
+
 ## Purpose
 
 `ARBFILES` is a sysop file manager door for Ami-Express. It is designed to let

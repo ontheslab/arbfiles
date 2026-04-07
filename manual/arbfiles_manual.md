@@ -1,0 +1,400 @@
+# ARBFILES Manual
+
+Document version: `1.00`
+
+## Index
+
+1. [What ARBFILES is](#what-arbfiles-is)
+2. [Warning](#warning)
+3. [What You Need](#what-you-need)
+4. [Installation](#installation)
+5. [Configuration](#configuration)
+6. [How ARBFILES Thinks About Files](#how-arbfiles-thinks-about-files)
+7. [The Main Screen](#the-main-screen)
+8. [General Keys](#general-keys)
+9. [Source Mode](#source-mode)
+10. [Destination Mode](#destination-mode)
+11. [Move Confirm And Progress](#move-confirm-and-progress)
+12. [Tagging And Batch Move](#tagging-and-batch-move)
+13. [Delete And Trash](#delete-and-trash)
+14. [Trash Recovery](#trash-recovery)
+15. [Hold Area](#hold-area)
+16. [Large Lists And Paging](#large-lists-and-paging)
+17. [Colour](#colour)
+18. [Logs And Problem Reports](#logs-and-problem-reports)
+19. [Known Practical Rules](#known-practical-rules)
+20. [Examples](#examples)
+
+## What ARBFILES is
+
+`ARBFILES` is a sysop file manager door for Ami-Express.
+
+It lets you:
+
+- browse conferences and file areas
+- read file descriptions
+- move files and their `DIR` entries together
+- tag files for batch moves
+- delete files
+- use an optional trash area
+- recover stray files from the trash area
+
+It is designed for real Ami-Express systems, not just neat ideal test setups.
+In practice, it is a more advanced companion to the built-in `FM` function.
+
+## Warning
+
+Use `ARBFILES` at your own risk.
+
+No guarantee is made that it is safe for your data, listings, setup, or
+system. It is still a work in progress and should be treated carefully.
+
+Make a backup before using it on a live BBS.
+
+## What You Need
+
+- Ami-Express with AEDoor available
+- the `arbfiles` binary in your doors location
+- `arbfiles.cfg` in the same drawer as the binary
+
+## Installation
+
+1. Copy `arbfiles` to your Ami-Express doors drawer.
+2. Copy `arbfiles.cfg.example` to `arbfiles.cfg`.
+3. Edit the config file to suit your system.
+4. Create the usual Ami-Express command `.info` entry to launch the door.
+
+## Configuration
+
+These are the current config options:
+
+| Key | Meaning |
+|---|---|
+| `bbs_location` | BBS root location used for Ami-Express config discovery |
+| `trash_path` | Optional trash folder |
+| `allow_hold_area` | Show or hide the `Hold/Held` special area |
+| `disable_paging` | Suppress Ami-Express paging while the door is running |
+| `list_block_size` | Loaded file-block size, clamped to `128..4096` |
+| `debug_enabled` | Turn debug logging on or off |
+| `debug_log` | Log file path |
+
+`list_block_size` controls how many files are loaded into memory at one time.
+The default is `1024`.
+
+## How ARBFILES Thinks About Files
+
+There are three important ideas in `ARBFILES`:
+
+- `DIR` area
+- store folder
+- loaded file block
+
+They are not the same thing.
+
+### DIR area
+
+This is the Ami-Express listing area, such as `DIR1`, `DIR2`, and so on.
+
+### Store folder
+
+This is the real disk folder where the actual files live.
+
+### Loaded file block
+
+When a `DIR` file is very large, `ARBFILES` only loads one block of entries at
+a time. You can move between blocks with `{` and `}`.
+
+## The Main Screen
+
+The main screen shows:
+
+- current source conference
+- current source area
+- current store path
+- list counts
+- block position when paging is active
+- the visible file list
+- single-line file descriptions in the list
+- a short preview of the selected file
+
+If files are tagged, the screen also shows the tag count.
+
+## General Keys
+
+| Key | Use |
+|---|---|
+| `Q` | Quit |
+| `R` | Redraw |
+| `?` | Help |
+| `V` | Full description |
+| `,` | Previous conference |
+| `.` | Next conference |
+| `[` | Previous listing area |
+| `]` | Next listing area |
+| `{` | Previous loaded file block |
+| `}` | Next loaded file block |
+
+## Source Mode
+
+Source mode is the normal browse screen.
+
+| Key | Use |
+|---|---|
+| `A` | Move selection up |
+| `Z` | Move selection down |
+| `G` | Tag or untag selected file |
+| `W` | Tag all files in the current loaded block |
+| `E` | Tag all files in the current `DIR` |
+| `C` | Clear current tags |
+| `S` | (Select) Enter destination mode |
+| `D` | Delete or trash selected file |
+| `T` | Jump to or from trash view, if trash is configured |
+| `H` | Jump to or from `Hold/Held`, if enabled |
+
+When you tag a file with `G`, the highlight steps down to the next file unless
+you are already at the bottom of the visible list.
+
+## Destination Mode
+
+Destination mode is where you choose where the moved files will go.
+
+| Key | Use |
+|---|---|
+| `S` | Return to source mode |
+| `M` | Move selected or tagged files |
+| `,` | Previous destination conference |
+| `.` | Next destination conference |
+| `[` | Previous destination area |
+| `]` | Next destination area |
+| `{` | Previous destination loaded block |
+| `}` | Next destination loaded block |
+| `-` | Previous destination store folder |
+| `=` | Next destination store folder |
+
+`-` and `=` only affect the destination store folder. They do not change the
+destination `DIR` area.
+
+## Move Confirm And Progress
+
+After pressing `M`, `ARBFILES` shows a confirm screen with:
+
+- source conference
+- source area
+- source store folder
+- destination conference
+- destination area
+- destination store folder
+
+You confirm with `Y` or cancel with `N`.
+
+During the move, `ARBFILES` shows a progress screen. After the move, it shows:
+
+- complete
+- partly complete
+- failed
+
+## Tagging And Batch Move
+
+Tagging is for bulk work.
+
+### Tag one file
+
+Use `G`.
+
+### Tag the loaded block
+
+Use `W`.
+
+### Tag the whole current DIR
+
+Use `E`.
+
+This is important for very large lists. `E` is not limited to the currently
+visible block.
+
+### Clear tags
+
+Use `C`.
+
+### Batch move
+
+If one or more files are tagged, `M` becomes a batch move for the tagged set in
+the current source `DIR`.
+
+## Delete And Trash
+
+Press `D` on the selected file.
+
+If `trash_path` is set, you can choose:
+
+- move to trash
+- permanent delete
+- cancel
+
+If `trash_path` is not set, delete goes straight to the stronger confirm path.
+
+The trash folder can also act as an intermediate holding folder if that suits
+the way you manage files.
+
+## Trash Recovery
+
+Trash works in two parts:
+
+- the `DIR1` listing inside the trash folder
+- the real files physically in the trash folder
+
+`ARBFILES` can show both:
+
+- normal trashed files that have a `DIR1` entry
+- stray files sitting in the trash folder without a matching listing entry
+
+If a stray trash file is moved back into a normal area, `ARBFILES` creates a
+simple recovery description so it can be listed again cleanly.
+
+## Hold Area
+
+`Hold/Held` support exists and can be reached with `H` when hold is enabled.
+
+At the moment, `ARBFILES` shows what is in the `Held` listing file. It does not
+yet add stray physical hold files the way trash does.
+
+## Large Lists And Paging
+
+If a `DIR` has more files than the loaded block size, `ARBFILES` pages through
+it in blocks.
+
+The screen will show:
+
+- `Loaded:` current loaded count
+- `Total:` total entries seen in the `DIR`
+- `Block:` current block range
+
+Example:
+
+```text
+Loaded: 128  Total: 740  Dirs: 6
+Block: 1-128 of 740
+```
+
+Use `{` and `}` to move between loaded blocks.
+
+## Colour
+
+`ARBFILES` follows the Ami-Express colour setting.
+
+If the user has colour off in Ami-Express, `ARBFILES` falls back to a plain text
+screen.
+
+## Logs And Problem Reports
+
+If `debug_enabled=1`, `ARBFILES` writes a log to the path set in `debug_log`.
+
+When reporting a problem, it helps to include:
+
+- exact key sequence
+- source conference and area
+- destination conference and area
+- source and destination store paths if relevant
+- whether the issue was local or remote
+- a screenshot
+- the debug log
+
+## Known Practical Rules
+
+These are the important real-world rules discovered while testing against
+live Ami-Express setups.
+
+### Listing area and store folder are not always the same thing
+
+Do not assume:
+
+```text
+DIR1 = DLPATH.1
+DIR2 = DLPATH.2
+```
+
+That is sometimes true, but not always.
+
+### Use the populated download paths in order
+
+The practical mapping works from the populated download paths in order, not
+just the raw `DLPATH.n` numbers.
+
+### Shared upload folder can be the last DIR area
+
+If the first populated download path is also `ULPATH.1`, that shared upload
+folder often acts like the last `DIR` area, not the first one.
+
+### ARBFILES uses icon.library first
+
+`ARBFILES` uses `icon.library` first, then falls back to a binary read if
+needed for awkward real-world `.info` files.
+
+## Examples
+
+These are simple step-by-step examples for the main jobs.
+
+### Single-file move
+
+1. Go to the source conference and source `DIR` area.
+2. Use `A` and `Z` to highlight the file you want.
+3. Press `S` (Select) to enter destination mode.
+4. Use `,` and `.` to choose the destination conference.
+5. Use `[` and `]` to choose the destination `DIR`.
+6. If needed, use `-` and `=` to choose the destination store folder.
+7. Press `M`.
+8. Check the confirm screen carefully.
+9. Press `Y` to move, or `N` to cancel.
+10. Read the result screen before returning.
+
+### Tag the whole current DIR and move it
+
+1. Go to the source conference and `DIR` area you want to move from.
+2. Press `E` to tag the whole current `DIR`.
+3. Check the `Tagged:` count on the source screen.
+4. Press `S` (Select) to enter destination mode.
+5. Choose the target conference and target `DIR`.
+6. If needed, choose the target store folder with `-` and `=`.
+7. Press `M`.
+8. Read the batch confirm screen.
+9. Press `Y` to start the batch move.
+10. Wait for the progress screen and final result.
+
+### Tag files across more than one loaded block and move them
+
+1. Go to the source conference and `DIR` area.
+2. Tag the first file with `G`, or tag several files in the first block.
+3. Press `}` to move to the next loaded block.
+4. Tag more files there.
+5. Repeat as needed across later blocks in the same `DIR`.
+6. Check that the `Tagged:` count keeps growing.
+7. Press `S` (Select) to enter destination mode.
+8. Choose the destination conference, `DIR`, and store folder.
+9. Press `M`.
+10. Confirm with `Y` and let the batch finish.
+
+### Use the trash folder
+
+#### Send a file to trash
+
+1. Highlight the file in source mode.
+2. Press `D`.
+3. If trash is configured, choose the trash option.
+4. Confirm the action.
+5. Wait for the result screen.
+
+#### Browse the trash area
+
+1. In source mode, press `T`.
+2. Browse the trash list as you would any other source list.
+3. Press `T` again to leave the trash view.
+
+#### Restore a file from trash
+
+1. Press `T` to enter the trash view.
+2. Highlight the file you want to restore.
+3. Press `S` to enter destination mode.
+4. Choose the destination conference, `DIR`, and store folder.
+5. Press `M`.
+6. Confirm with `Y`.
+7. Check the result screen.

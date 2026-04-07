@@ -1,5 +1,7 @@
 # ARBFILES Key Chart
 
+Document version: `1.00`
+
 ## Global
 
 - `Q` quit

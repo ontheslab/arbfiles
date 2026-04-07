@@ -1,6 +1,8 @@
 ARBFILES KEY CHART
 ==================
 
+Document version: 1.00
+
 Global
 ------
 

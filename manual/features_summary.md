@@ -1,0 +1,100 @@
+# ARBFILES Feature Summary
+
+Document version: `1.00`
+
+## What It Does
+
+`ARBFILES` is a sysop file manager door for Ami-Express.
+
+It is designed to help manage real Ami-Express file areas from inside the BBS,
+without dropping back to Workbench or shell tools for normal file work. In
+practice, it is a more advanced companion to the built-in `FM` function.
+
+## Main Features
+
+### Browse conferences and file areas
+
+- browse across conferences
+- move between `DIR` areas
+- single-line file descriptions in list views
+- view the full stored description for the selected file
+
+### Work with real Ami-Express layouts
+
+- handles listing areas and store folders as separate things
+- handles rotated `DIR` to folder layouts
+- handles nested source folders
+- uses `icon.library` first, with a fallback binary read for awkward real-world
+  `.info` files
+
+### Large-list paging
+
+- configurable loaded file-block size
+- browse large `DIR` listings in blocks
+- move between loaded blocks without loading the whole list into memory at once
+
+### Single-file move
+
+- choose source file
+- choose destination conference
+- choose destination area
+- choose destination store folder
+- confirm before moving
+- see progress and final result
+
+### Tagging and batch move
+
+- tag one file
+- tag all files in the current loaded block
+- tag all files in the current `DIR`
+- carry tags across loaded blocks in the same `DIR`
+- move tagged files in one batch
+
+### Delete and trash
+
+- permanent delete
+- optional delete-to-trash
+- confirm before delete
+- progress and result screens
+- can also be used as an intermediate holding folder
+
+### Trash recovery
+
+- browse the trash area
+- restore normal trashed files
+- detect stray physical files in the trash folder
+- restore stray trash files even when they do not have a matching `DIR1` entry
+
+### Hold support
+
+- browse `Hold/Held`
+- move held files back into normal areas
+
+### Colour support
+
+- follows the Ami-Express colour setting
+- falls back cleanly to plain text when colour is off
+
+### Debug logging
+
+- optional file-based debug log
+- useful for testing and problem reports
+
+## Practical Notes
+
+- `ARBFILES` works with the way live Ami-Express systems actually behave, not
+  just simple ideal setups.
+- `DIR` areas and store folders are not always a one-to-one match.
+- If the first populated download path is also the upload path, that shared
+  upload folder often acts like the last `DIR` area, not the first one.
+
+## Current Position - Functional base
+
+The current work is well past basic browsing. The main working areas now are:
+
+- browse reliability
+- move reliability
+- delete and trash reliability
+- tagging and batch move reliability
+- large-list paging
+- colour and layout polish
