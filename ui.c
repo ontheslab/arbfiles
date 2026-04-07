@@ -403,6 +403,9 @@ static int ui_wait_for_key(struct aedoor_context *door, long *key_value)
 
   for (;;) {
     poll_status = aedoor_poll_key(door, key_value);
+    if (poll_status == -2) {
+      return -2;
+    }
     if (poll_status < 0) {
       return -1;
     }
@@ -555,6 +558,9 @@ int ui_confirm_orphan_delete(struct aedoor_context *door,
 
   for (;;) {
     if (ui_wait_for_key(door, &key_value) != 0) {
+      if (aedoor_session_lost(door)) {
+        return -2;
+      }
       return -1;
     }
     if ((key_value == 'Y') || (key_value == 'y')) {
@@ -1194,6 +1200,9 @@ static int ui_confirm_move(struct aedoor_context *door,
 
   for (;;) {
     if (ui_wait_for_key(door, &key_value) != 0) {
+      if (aedoor_session_lost(door)) {
+        return -2;
+      }
       return -1;
     }
 
@@ -1979,6 +1988,13 @@ int ui_run(const struct door_config *config,
 
   for (;;) {
     poll_status = aedoor_poll_key(door, &key_value);
+    if (poll_status == -2) {
+      if (error_text != NULL) {
+        error_text[0] = '\0';
+      }
+      doorlog_write(log, "User disconnected while in UI.");
+      return UI_RESULT_EXIT;
+    }
     if (poll_status < 0) {
       ui_set_error(error_text, error_text_size, "user input failed");
       doorlog_write(log, "UI input polling failed.");
@@ -2115,6 +2131,13 @@ int ui_run(const struct door_config *config,
                                        *destination_area,
                                        *destination_folder_index);
       if (confirm_status < 0) {
+        if (confirm_status == -2) {
+          if (error_text != NULL) {
+            error_text[0] = '\0';
+          }
+          doorlog_write(log, "User disconnected at move confirm screen.");
+          return UI_RESULT_EXIT;
+        }
         ui_set_error(error_text, error_text_size, "move confirmation input failed");
         return -1;
       }
@@ -2159,6 +2182,13 @@ int ui_run(const struct door_config *config,
                                               *active_area,
                                               *selected_entry);
       if (confirm_delete_mode < 0) {
+        if (confirm_delete_mode == -2) {
+          if (error_text != NULL) {
+            error_text[0] = '\0';
+          }
+          doorlog_write(log, "User disconnected at delete confirm screen.");
+          return UI_RESULT_EXIT;
+        }
         ui_set_error(error_text, error_text_size, "delete confirmation input failed");
         return -1;
       }

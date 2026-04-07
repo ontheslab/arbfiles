@@ -13,6 +13,7 @@
 
 #include <proto/exec.h>
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,6 +64,26 @@ static long bridge_fetch_data_value(struct aedoor_context *context, unsigned lon
 
   GetDT(context->diface, id, NULL);
   return (long) (*context->diface->dif_Data);
+}
+
+static int bridge_text_equals(const char *left, const char *right)
+{
+  unsigned char left_char;
+  unsigned char right_char;
+
+  if ((left == NULL) || (right == NULL)) {
+    return 0;
+  }
+
+  while ((*left != '\0') && (*right != '\0')) {
+    left_char = (unsigned char) *left++;
+    right_char = (unsigned char) *right++;
+    if (toupper(left_char) != toupper(right_char)) {
+      return 0;
+    }
+  }
+
+  return (*left == '\0') && (*right == '\0');
 }
 
 /* Door lifecycle */
@@ -223,17 +244,45 @@ int aedoor_poll_key(struct aedoor_context *context, long *key_value)
 
   SendCmd(context->diface, GETKEY);
   if (context->string_field[0] != '1') {
+    if (!aedoor_user_online(context)) {
+      return -2;
+    }
     return 0;
   }
 
   key = Hotkey(context->diface, "");
   SendDataCmd(context->diface, CON_CURSOR, 1);
   if (key < 0) {
-    return -1;
+    context->session_lost = 1;
+    return -2;
   }
 
   *key_value = key;
   return 1;
+}
+
+int aedoor_user_online(struct aedoor_context *context)
+{
+  char status_text[16];
+
+  if ((context == NULL) || (context->diface == NULL) || (context->string_field == NULL)) {
+    return 0;
+  }
+
+  bridge_fetch_text_value(context, BB_STATUS, status_text, sizeof(status_text));
+  if (bridge_text_equals(status_text, "ONLINE")) {
+    return 1;
+  }
+
+  if (bridge_text_equals(status_text, "OFFLINE")) {
+    context->session_lost = 1;
+  }
+  return 0;
+}
+
+int aedoor_session_lost(const struct aedoor_context *context)
+{
+  return (context != NULL) && (context->session_lost != 0);
 }
 
 /* Session shutdown */

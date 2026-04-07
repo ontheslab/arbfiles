@@ -29,6 +29,7 @@ struct DIFace {
 #define DT_NAME 100
 #define BB_CONFNAME 126
 #define BB_CONFLOCAL 127
+#define BB_STATUS 129
 #define GETKEY 500
 #define RAWARROW 501
 #define NODE_DEVICE 503

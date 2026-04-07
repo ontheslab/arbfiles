@@ -962,6 +962,14 @@ static int batch_move_tagged_set(const struct door_config *config,
   last_block_start_entry = 0L;
   block_start_entry = 0L;
   for (;;) {
+    if (!aedoor_user_online(door)) {
+      strncpy(error_text, "User disconnected before batch move could finish.", (size_t) error_text_size - 1U);
+      error_text[error_text_size - 1] = '\0';
+      tagset_free(&pending_tags);
+      dirlist_free(&batch_dirlist);
+      return -1;
+    }
+
     if (load_current_area_listing(source_conference,
                                   config,
                                   active_area,
@@ -981,6 +989,26 @@ static int batch_move_tagged_set(const struct door_config *config,
   }
 
   for (block_start_entry = last_block_start_entry; block_start_entry >= 0L; block_start_entry -= block_step) {
+    if (!aedoor_user_online(door)) {
+      if (moved_count > 0) {
+        snprintf(status_message,
+                 (size_t) status_message_size,
+                 "User disconnected. Batch stopped after %d moved, %d failed.",
+                 moved_count,
+                 failed_count);
+        strncpy(error_text, status_message, (size_t) error_text_size - 1U);
+        error_text[error_text_size - 1] = '\0';
+        tagset_free(&pending_tags);
+        dirlist_free(&batch_dirlist);
+        return 1;
+      }
+      strncpy(error_text, "User disconnected before batch move could finish.", (size_t) error_text_size - 1U);
+      error_text[error_text_size - 1] = '\0';
+      tagset_free(&pending_tags);
+      dirlist_free(&batch_dirlist);
+      return -1;
+    }
+
     if (load_current_area_listing(source_conference,
                                   config,
                                   active_area,
@@ -1004,6 +1032,26 @@ static int batch_move_tagged_set(const struct door_config *config,
       }
       if (!tagset_contains(&pending_tags, batch_dirlist.entries[tag_index].filename)) {
         continue;
+      }
+
+      if (!aedoor_user_online(door)) {
+        if (moved_count > 0) {
+          snprintf(status_message,
+                   (size_t) status_message_size,
+                   "User disconnected. Batch stopped after %d moved, %d failed.",
+                   moved_count,
+                   failed_count);
+          strncpy(error_text, status_message, (size_t) error_text_size - 1U);
+          error_text[error_text_size - 1] = '\0';
+          tagset_free(&pending_tags);
+          dirlist_free(&batch_dirlist);
+          return 1;
+        }
+        strncpy(error_text, "User disconnected before batch move could finish.", (size_t) error_text_size - 1U);
+        error_text[error_text_size - 1] = '\0';
+        tagset_free(&pending_tags);
+        dirlist_free(&batch_dirlist);
+        return -1;
       }
 
       batch_index++;
@@ -1692,9 +1740,13 @@ int main(int argc, char **argv)
   }
 
   if (ui_status != 0) {
-    doorlog_writef(&log, "UI failed: %s", error_text);
-    aedoor_write_line(&door, "Door session ended with an error.");
-    aedoor_write_line(&door, error_text);
+    if (aedoor_session_lost(&door)) {
+      doorlog_write(&log, "Door ended after user disconnect.");
+    } else {
+      doorlog_writef(&log, "UI failed: %s", error_text);
+      aedoor_write_line(&door, "Door session ended with an error.");
+      aedoor_write_line(&door, error_text);
+    }
   }
 
   doorlog_write(&log, "Restoring AEDoor state and closing.");
