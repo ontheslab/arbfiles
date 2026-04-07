@@ -86,11 +86,9 @@ Copy `arbfiles.cfg.example` to `arbfiles.cfg` and edit as needed.
 
 ## Manuals
 
-Public tester notes are here:
-
-- [`manual/beta_test_guide.md`](manual/beta_test_guide.md)
-- [`manual/key_chart.md`](manual/key_chart.md)
-- [`manual/change_log.md`](manual/change_log.md)
+- [`manual/arbfiles_manual.md`](manual/arbfiles_manual.md) - full install, config, and usage reference
+- [`manual/key_chart.md`](manual/key_chart.md) - compact key reference
+- [`manual/change_log.md`](manual/change_log.md) - version history
 
 Plain text versions are also in the same folder.
 

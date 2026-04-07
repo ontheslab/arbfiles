@@ -276,8 +276,15 @@ int aedoor_user_online(struct aedoor_context *context)
 
   if (bridge_text_equals(status_text, "OFFLINE")) {
     context->session_lost = 1;
+    return 0;
   }
-  return 0;
+
+  /*
+   * Live Ami-Express systems do not always return a clear ONLINE value here.
+   * Treat unknown or blank status text as still online, and only stop on an
+   * explicit OFFLINE result or a lost session from Hotkey().
+   */
+  return 1;
 }
 
 int aedoor_session_lost(const struct aedoor_context *context)
