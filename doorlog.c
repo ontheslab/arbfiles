@@ -1,8 +1,10 @@
 /*
- * Lightweight Amiga-side logger.
+ * Simple Amiga-side logger.
  *
  * Native DOS file I/O is used so the log remains usable in normal door launch
  * environments.
+ *
+ * Ref: this keeps the same simple local logging style used in arblink.
  */
 #include "doorlog.h"
 

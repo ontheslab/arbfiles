@@ -2,6 +2,7 @@
  * Flat key=value config loader for the Ami file manager door.
  */
 #include "door_config.h"
+#include "dirlist.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -74,6 +75,34 @@ static int config_parse_bool(const char *text)
   return 0;
 }
 
+static int config_parse_int(const char *text, int default_value)
+{
+  long parsed_value;
+  char *end;
+
+  if ((text == NULL) || (*text == '\0')) {
+    return default_value;
+  }
+
+  parsed_value = strtol(text, &end, 10);
+  if ((end == text) || (*config_trim(end) != '\0')) {
+    return default_value;
+  }
+
+  return (int) parsed_value;
+}
+
+static int config_clamp_int(int value, int minimum_value, int maximum_value)
+{
+  if (value < minimum_value) {
+    return minimum_value;
+  }
+  if (value > maximum_value) {
+    return maximum_value;
+  }
+  return value;
+}
+
 /* Setting application and defaults */
 static void config_apply_setting(struct door_config *config, const char *key, const char *value)
 {
@@ -84,6 +113,9 @@ static void config_apply_setting(struct door_config *config, const char *key, co
   if (config_text_equals(key, "bbs_location")) {
     strncpy(config->bbs_location, value, sizeof(config->bbs_location) - 1U);
     config->bbs_location[sizeof(config->bbs_location) - 1U] = '\0';
+  } else if (config_text_equals(key, "trash_path")) {
+    strncpy(config->trash_path, value, sizeof(config->trash_path) - 1U);
+    config->trash_path[sizeof(config->trash_path) - 1U] = '\0';
   } else if (config_text_equals(key, "debug_log")) {
     strncpy(config->debug_log, value, sizeof(config->debug_log) - 1U);
     config->debug_log[sizeof(config->debug_log) - 1U] = '\0';
@@ -95,6 +127,10 @@ static void config_apply_setting(struct door_config *config, const char *key, co
     config->allow_hold_area = config_parse_bool(value);
   } else if (config_text_equals(key, "start_in_current_conf")) {
     config->start_in_current_conf = config_parse_bool(value);
+  } else if (config_text_equals(key, "list_block_size")) {
+    config->list_block_size = config_clamp_int(config_parse_int(value, DIRLIST_DEFAULT_BLOCK_SIZE),
+                                               DIRLIST_MIN_BLOCK_SIZE,
+                                               DIRLIST_MAX_BLOCK_SIZE);
   }
 }
 
@@ -109,10 +145,12 @@ void config_set_defaults(struct door_config *config)
   config->bbs_location[sizeof(config->bbs_location) - 1U] = '\0';
   strncpy(config->debug_log, "T:arbfiles.log", sizeof(config->debug_log) - 1U);
   config->debug_log[sizeof(config->debug_log) - 1U] = '\0';
+  config->trash_path[0] = '\0';
   config->debug_enabled = 1;
   config->disable_paging = 1;
   config->allow_hold_area = 1;
   config->start_in_current_conf = 1;
+  config->list_block_size = DIRLIST_DEFAULT_BLOCK_SIZE;
 }
 
 /* Public config-file loader */

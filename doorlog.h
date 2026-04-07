@@ -1,10 +1,10 @@
 /*
- * Tiny append-only log abstraction for arbfiles.
+ * Small append-only log helper for arbfiles.
  */
 #ifndef DOORLOG_H
 #define DOORLOG_H
 
-/* Active log target and enable state. */
+/* Active log file and enable state. */
 struct doorlog {
   int enabled;
   long handle;

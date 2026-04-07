@@ -3,11 +3,15 @@
  *
  * This module keeps the on-disk file move and the source/destination listing
  * updates together so rollback can stay in one place.
+ *
+ * Ref: the listing rewrite rules here are based on how Ami-Express stores and
+ * maintains DIR files, rather than on generic file-manager rules.
  */
 #include "file_ops.h"
 #include "dirlist.h"
 
 #include <dos/dos.h>
+#include <dos/datetime.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +84,23 @@ static void file_ops_join_path(char *output, size_t output_size, const char *bas
   }
 }
 
+static int file_ops_path_exists(const char *path)
+{
+  BPTR lock;
+
+  if ((path == NULL) || (*path == '\0')) {
+    return 0;
+  }
+
+  lock = Lock((STRPTR) path, ACCESS_READ);
+  if (lock == 0) {
+    return 0;
+  }
+
+  UnLock(lock);
+  return 1;
+}
+
 static int file_ops_copy_file(const char *source_path, const char *destination_path)
 {
   BPTR source;
@@ -111,6 +132,64 @@ static int file_ops_copy_file(const char *source_path, const char *destination_p
     return -1;
   }
   return length < 0 ? -1 : 0;
+}
+
+static void file_ops_build_recovery_block(const struct dirlist_entry *entry,
+                                          const char *source_file_path,
+                                          char *output,
+                                          size_t output_size)
+{
+  const char *filename;
+  BPTR lock;
+  struct FileInfoBlock *fib;
+  LONG file_size;
+  char date_text[16];
+  struct DateTime date_time;
+  int date_ok;
+
+  if ((output == NULL) || (output_size == 0U) || (entry == NULL)) {
+    return;
+  }
+
+  output[0] = '\0';
+  filename = entry->filename[0] != '\0' ? entry->filename : "RECOVERED.FILE";
+  file_size = 0;
+  strncpy(date_text, "00-00-00", sizeof(date_text) - 1U);
+  date_text[sizeof(date_text) - 1U] = '\0';
+  date_ok = 0;
+
+  if ((source_file_path != NULL) && (*source_file_path != '\0')) {
+    lock = Lock((STRPTR) source_file_path, ACCESS_READ);
+    if (lock != 0) {
+      fib = AllocDosObject(DOS_FIB, NULL);
+      if (fib != NULL) {
+        if (Examine(lock, fib) != DOSFALSE) {
+          file_size = fib->fib_Size;
+          memset(&date_time, 0, sizeof(date_time));
+          date_time.dat_Stamp = fib->fib_Date;
+          date_time.dat_Format = FORMAT_USA;
+          date_time.dat_StrDate = (UBYTE *) date_text;
+          if (DateToStr(&date_time) != DOSFALSE) {
+            date_ok = 1;
+          }
+        }
+        FreeDosObject(DOS_FIB, fib);
+      }
+      UnLock(lock);
+    }
+  }
+
+  if (!date_ok) {
+    strncpy(date_text, "00-00-00", sizeof(date_text) - 1U);
+    date_text[sizeof(date_text) - 1U] = '\0';
+  }
+
+  snprintf(output,
+           output_size,
+           "%-12s N %6ld  %s  Recovered from Trash by arbfiles\n",
+           filename,
+           file_size,
+           date_text);
 }
 
 /* Listing rewrite helpers */
@@ -355,13 +434,20 @@ int file_ops_move_selected(const struct dirlist_data *source_dirlist,
   snprintf(destination_temp_path, sizeof(destination_temp_path), "%s.afdtmp", destination_listing_path);
   snprintf(destination_backup_path, sizeof(destination_backup_path), "%s.afdbak", destination_listing_path);
 
-  if (file_ops_extract_entry_block(source_dirlist->listing_path,
-                                   filename,
-                                   source_temp_path,
-                                   moved_block,
-                                   sizeof(moved_block)) != 0) {
-    file_ops_set_error(error_text, error_text_size, "source listing entry could not be extracted");
-    return -1;
+  if (source_dirlist->entries[selected_entry].has_listing_entry) {
+    if (file_ops_extract_entry_block(source_dirlist->listing_path,
+                                     filename,
+                                     source_temp_path,
+                                     moved_block,
+                                     sizeof(moved_block)) != 0) {
+      file_ops_set_error(error_text, error_text_size, "source listing entry could not be extracted");
+      return -1;
+    }
+  } else {
+    file_ops_build_recovery_block(&source_dirlist->entries[selected_entry],
+                                  source_file_path,
+                                  moved_block,
+                                  sizeof(moved_block));
   }
 
   if (file_ops_write_destination_listing(destination_listing_path, destination_temp_path, moved_block) != 0) {
@@ -373,14 +459,16 @@ int file_ops_move_selected(const struct dirlist_data *source_dirlist,
     return -1;
   }
 
-  if (file_ops_copy_file(source_dirlist->listing_path, source_backup_path) != 0) {
-    int saved_errno;
+  if (source_dirlist->entries[selected_entry].has_listing_entry) {
+    if (file_ops_copy_file(source_dirlist->listing_path, source_backup_path) != 0) {
+      int saved_errno;
 
-    saved_errno = errno;
-    remove(source_temp_path);
-    remove(destination_temp_path);
-    file_ops_set_runtime_error(error_text, error_text_size, "source listing backup failed", saved_errno);
-    return -1;
+      saved_errno = errno;
+      remove(source_temp_path);
+      remove(destination_temp_path);
+      file_ops_set_runtime_error(error_text, error_text_size, "source listing backup failed", saved_errno);
+      return -1;
+    }
   }
 
   rollback_needed = 0;
@@ -414,7 +502,7 @@ int file_ops_move_selected(const struct dirlist_data *source_dirlist,
     return -1;
   }
 
-  {
+  if (source_dirlist->entries[selected_entry].has_listing_entry) {
     int rewrite_errno;
     if (file_ops_replace_with_temp(source_temp_path, source_dirlist->listing_path, &rewrite_errno) != 0) {
       int rollback_ok;
@@ -444,6 +532,7 @@ int file_ops_move_selected(const struct dirlist_data *source_dirlist,
       return -1;
     }
   }
+
   {
     int rewrite_errno;
     if (file_ops_replace_with_temp(destination_temp_path, destination_listing_path, &rewrite_errno) != 0) {
@@ -482,6 +571,221 @@ int file_ops_move_selected(const struct dirlist_data *source_dirlist,
     remove(destination_backup_path);
   }
 
+  if (error_text != NULL) {
+    error_text[0] = '\0';
+  }
+  return 0;
+}
+
+/* Delete and trash operations */
+int file_ops_delete_selected(const struct dirlist_data *source_dirlist,
+                             int selected_entry,
+                             const char *source_folder,
+                             const char *trash_folder,
+                             int use_trash,
+                             char *error_text,
+                             int error_text_size)
+{
+  char filename[64];
+  char trash_listing_path[256];
+  char source_file_path[256];
+  char trash_file_path[256];
+  char delete_stage_path[256];
+  char source_temp_path[256];
+  char source_backup_path[256];
+  char removed_block[4096];
+  int staged_delete;
+
+  if ((source_dirlist == NULL) || (selected_entry < 0) || (selected_entry >= source_dirlist->entry_count) ||
+      (source_folder == NULL) || (*source_folder == '\0')) {
+    file_ops_set_error(error_text, error_text_size, "invalid delete request");
+    return -1;
+  }
+
+  strncpy(filename, source_dirlist->entries[selected_entry].filename, sizeof(filename) - 1U);
+  filename[sizeof(filename) - 1U] = '\0';
+  if (filename[0] == '\0') {
+    file_ops_set_error(error_text, error_text_size, "selected entry has no filename");
+    return -1;
+  }
+
+  if (use_trash) {
+    file_ops_join_path(trash_listing_path, sizeof(trash_listing_path), trash_folder, "DIR1");
+    return file_ops_move_selected(source_dirlist,
+                                  selected_entry,
+                                  source_folder,
+                                  trash_folder,
+                                  trash_listing_path,
+                                  error_text,
+                                  error_text_size);
+  }
+
+  file_ops_join_path(source_file_path, sizeof(source_file_path), source_folder, filename);
+  snprintf(source_temp_path, sizeof(source_temp_path), "%s.afdtmp", source_dirlist->listing_path);
+  snprintf(source_backup_path, sizeof(source_backup_path), "%s.afdbak", source_dirlist->listing_path);
+  snprintf(delete_stage_path, sizeof(delete_stage_path), "%s.afddel", source_file_path);
+  trash_file_path[0] = '\0';
+  staged_delete = 0;
+
+  if (file_ops_path_exists(delete_stage_path)) {
+    file_ops_set_error(error_text, error_text_size, "staged delete file already exists");
+    return -1;
+  }
+
+  if (source_dirlist->entries[selected_entry].has_listing_entry) {
+    if (file_ops_extract_entry_block(source_dirlist->listing_path,
+                                     filename,
+                                     source_temp_path,
+                                     removed_block,
+                                     sizeof(removed_block)) != 0) {
+      file_ops_set_error(error_text, error_text_size, "source listing entry could not be extracted");
+      return -1;
+    }
+  }
+
+  if (source_dirlist->entries[selected_entry].has_listing_entry) {
+    if (file_ops_copy_file(source_dirlist->listing_path, source_backup_path) != 0) {
+      int saved_errno;
+
+      saved_errno = errno;
+      remove(source_temp_path);
+      file_ops_set_runtime_error(error_text, error_text_size, "source listing backup failed", saved_errno);
+      return -1;
+    }
+  }
+
+  if (Rename((STRPTR) source_file_path, (STRPTR) delete_stage_path) == DOSFALSE) {
+    LONG saved_ioerr;
+
+    saved_ioerr = IoErr();
+    remove(source_temp_path);
+    remove(source_backup_path);
+    file_ops_set_dos_error(error_text, error_text_size, "delete staging failed", saved_ioerr);
+    return -1;
+  }
+  staged_delete = 1;
+
+  if (source_dirlist->entries[selected_entry].has_listing_entry) {
+    int rewrite_errno;
+    if (file_ops_replace_with_temp(source_temp_path, source_dirlist->listing_path, &rewrite_errno) != 0) {
+      int rollback_ok;
+
+      rollback_ok = (Rename((STRPTR) delete_stage_path, (STRPTR) source_file_path) != DOSFALSE) &&
+                    file_ops_restore_with_backup(source_backup_path, source_dirlist->listing_path);
+
+      if (rollback_ok) {
+        remove(source_temp_path);
+        remove(source_backup_path);
+        file_ops_set_dos_error(error_text,
+                               error_text_size,
+                               "source listing rewrite failed; delete was rolled back",
+                               (LONG) rewrite_errno);
+      } else {
+        file_ops_set_dos_error(error_text,
+                               error_text_size,
+                               "source listing rewrite failed; rollback needs checking; .afdbak/.afdtmp kept",
+                               (LONG) rewrite_errno);
+      }
+      return -1;
+    }
+  }
+
+  if (staged_delete) {
+    LONG saved_ioerr;
+
+    if (DeleteFile((STRPTR) delete_stage_path) == DOSFALSE) {
+      saved_ioerr = IoErr();
+      if (source_dirlist->entries[selected_entry].has_listing_entry) {
+        file_ops_restore_with_backup(source_backup_path, source_dirlist->listing_path);
+      }
+      Rename((STRPTR) delete_stage_path, (STRPTR) source_file_path);
+      file_ops_set_dos_error(error_text, error_text_size, "final file delete failed", saved_ioerr);
+      return -1;
+    }
+  }
+
+  remove(source_temp_path);
+  remove(source_backup_path);
+
+  if (error_text != NULL) {
+    error_text[0] = '\0';
+  }
+  return 0;
+}
+
+/* Orphan listing cleanup */
+int file_ops_delete_orphan_entry(const struct dirlist_data *source_dirlist,
+                                 int selected_entry,
+                                 char *error_text,
+                                 int error_text_size)
+{
+  char filename[64];
+  char source_temp_path[256];
+  char source_backup_path[256];
+  char removed_block[4096];
+
+  if ((source_dirlist == NULL) || (selected_entry < 0) || (selected_entry >= source_dirlist->entry_count)) {
+    file_ops_set_error(error_text, error_text_size, "invalid orphan delete request");
+    return -1;
+  }
+
+  strncpy(filename, source_dirlist->entries[selected_entry].filename, sizeof(filename) - 1U);
+  filename[sizeof(filename) - 1U] = '\0';
+  if (filename[0] == '\0') {
+    file_ops_set_error(error_text, error_text_size, "selected entry has no filename");
+    return -1;
+  }
+
+  if (!source_dirlist->entries[selected_entry].has_listing_entry) {
+    if (error_text != NULL) {
+      error_text[0] = '\0';
+    }
+    return 0;
+  }
+
+  snprintf(source_temp_path, sizeof(source_temp_path), "%s.afdtmp", source_dirlist->listing_path);
+  snprintf(source_backup_path, sizeof(source_backup_path), "%s.afdbak", source_dirlist->listing_path);
+
+  if (file_ops_extract_entry_block(source_dirlist->listing_path,
+                                   filename,
+                                   source_temp_path,
+                                   removed_block,
+                                   sizeof(removed_block)) != 0) {
+    file_ops_set_error(error_text, error_text_size, "source listing entry could not be extracted");
+    return -1;
+  }
+
+  if (file_ops_copy_file(source_dirlist->listing_path, source_backup_path) != 0) {
+    int saved_errno;
+
+    saved_errno = errno;
+    remove(source_temp_path);
+    file_ops_set_runtime_error(error_text, error_text_size, "source listing backup failed", saved_errno);
+    return -1;
+  }
+
+  {
+    int rewrite_errno;
+    if (file_ops_replace_with_temp(source_temp_path, source_dirlist->listing_path, &rewrite_errno) != 0) {
+      if (file_ops_restore_with_backup(source_backup_path, source_dirlist->listing_path)) {
+        remove(source_temp_path);
+        remove(source_backup_path);
+        file_ops_set_dos_error(error_text,
+                               error_text_size,
+                               "orphan listing rewrite failed; change was rolled back",
+                               (LONG) rewrite_errno);
+      } else {
+        file_ops_set_dos_error(error_text,
+                               error_text_size,
+                               "orphan listing rewrite failed; rollback needs checking; .afdbak/.afdtmp kept",
+                               (LONG) rewrite_errno);
+      }
+      return -1;
+    }
+  }
+
+  remove(source_temp_path);
+  remove(source_backup_path);
   if (error_text != NULL) {
     error_text[0] = '\0';
   }

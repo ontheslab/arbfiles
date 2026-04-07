@@ -9,7 +9,7 @@ struct door_config;
 #define AE_MAX_CONFERENCES 64
 #define AE_MAX_AREA_PATHS 32
 
-/* Lightweight conference metadata used by browse and move flows. */
+/* Base conference metadata used by browse and move flows. */
 struct ae_conference_info {
   int loaded;
   int number;

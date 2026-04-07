@@ -1,5 +1,5 @@
 /*
- * Public interface for the AEDoor bridge layer.
+ * Public interface for the AEDoor bridge.
  */
 #ifndef AEDOOR_BRIDGE_H
 #define AEDOOR_BRIDGE_H
@@ -8,7 +8,7 @@ struct door_config;
 struct DIFace;
 struct Library;
 
-/* Runtime state for the active Ami-Express caller session. */
+/* Runtime state for the active Ami-Express user session. */
 struct aedoor_context {
   int active;
   int paging_state_known;
@@ -24,7 +24,7 @@ struct aedoor_context {
   char conf_location[128];
 };
 
-/* Door lifecycle and caller I/O helpers. */
+/* Door open, close, and user I/O helpers. */
 int aedoor_open(struct aedoor_context *context, int argc, char **argv, char *error_text, int error_text_size);
 int aedoor_fetch_context(struct aedoor_context *context, char *error_text, int error_text_size);
 int aedoor_prepare_session(struct aedoor_context *context, const struct door_config *config, char *error_text, int error_text_size);

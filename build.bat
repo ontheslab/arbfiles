@@ -16,7 +16,7 @@ echo  arbfiles Build Script
 echo ****************************************************************************
 
 echo  Building arbfiles...
-vc -I"%AMIGA_INC%" -I"%AMIGA_POSIX_INC%" -I"%AMIGA_NDK_INC%" -o arbfiles arbfiles.c doorlog.c door_config.c aedoor_bridge.c ae_config_scan.c dirlist.c file_ops.c ui.c
+vc -I"%AMIGA_INC%" -I"%AMIGA_POSIX_INC%" -I"%AMIGA_NDK_INC%" -o arbfiles arbfiles.c doorlog.c door_config.c aedoor_bridge.c ae_config_scan.c dirlist.c tagset.c file_ops.c ui.c
 if errorlevel 1 goto fail
 
 echo.

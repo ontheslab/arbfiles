@@ -1,6 +1,10 @@
+/*
+ * Public build version shown in the UI, logs, and beta notes.
+ */
 #ifndef DOOR_VERSION_H
 #define DOOR_VERSION_H
 
-#define ARBFILES_VERSION "1.01.38"
+/* Keep this in step with each hand-off build. */
+#define ARBFILES_VERSION "1.0.4.90"
 
 #endif

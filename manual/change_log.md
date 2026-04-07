@@ -1,0 +1,46 @@
+# ARBFILES Change Log
+
+## 1.0.4.89 to 1.0.4.90
+
+- fixed live `DIR` to folder mapping in conferences that use populated-path
+  order and rotated upload folders
+- confirmed large tagged batch moves on restored live-style data
+
+## 1.0.3.83 to 1.0.4.88
+
+- added configurable loaded file-block size
+- added tagging across loaded blocks in the same `DIR`
+- added `tag all in this DIR`
+- improved batch move progress and totals
+- fixed the WinUAE recoverable popup on batch move confirm
+- improved large-list paging and status handling
+
+## 1.0.3.78 to 1.0.3.82
+
+- cleaned up and simplified the help screen layout
+- added the destination store-folder `(-)/(=)` keys to the in-door help and tester docs
+- improved help colours and compact key presentation for the paging and tagging controls
+
+## 1.0.3.77
+
+- added large-list block paging
+- added file tagging and batch move
+- improved block numbering and paging status text
+
+## 1.0.3.75 to 1.0.3.76
+
+- fixed live batch move failures caused by overlapping source folders
+- fixed destination menu corruption
+- improved source and destination store-path display
+
+## 1.0.3.70 to 1.0.3.74
+
+- fixed wrong conference names in some live systems
+- improved compatibility with unusual Ami-Express conference setup data
+- improved reliability when reading conference path settings
+
+## 1.0.2.60 to 1.0.2.63
+
+- prepared the first public beta-test build
+- improved nested source file lookup
+- improved compatibility with real Ami-Express conference layouts

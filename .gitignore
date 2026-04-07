@@ -1,5 +1,6 @@
 # Compiled Amiga binaries
 arbfiles
+tooltype_dump
 
 # Runtime logs
 *.log

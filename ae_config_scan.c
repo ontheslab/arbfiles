@@ -4,6 +4,9 @@
  * This pass reads CONFCONFIG and the per-conference config objects via
  * icon.library tooltypes. It is intentionally conservative and only gathers
  * the metadata needed for the next UI and parser stages.
+ *
+ * Ref: how this works is checked against Ami-Express source such as
+ * express.e, the setup tool sources, and standard icon.library tooltype use.
  */
 #include "ae_config_scan.h"
 #include "door_config.h"
@@ -205,6 +208,16 @@ static int scan_parse_path_index(const char *text, const char *prefix)
     return -1;
   }
 
+  while ((*text != '\0') &&
+         !isalpha((unsigned char) *text) &&
+         (*text != '$')) {
+    text++;
+  }
+
+  if (*text == '$') {
+    text++;
+  }
+
   if (strncmp(text, prefix, strlen(prefix)) != 0) {
     return -1;
   }
@@ -276,7 +289,7 @@ static void scan_parse_raw_icon_string(const char *text,
   }
 
   path_index = scan_parse_path_index(text, "ULPATH.");
-  if (path_index > 0) {
+  if (path_index == 1) {
     value = strchr(text, '=');
     if (value != NULL) {
       scan_store_indexed_path(conference->upload_paths,
@@ -303,6 +316,12 @@ static int scan_parse_numbered_name(const char *text,
 
   if ((text == NULL) || (prefix == NULL) || (index_out == NULL) || (value_out == NULL)) {
     return -1;
+  }
+
+  while ((*text != '\0') &&
+         !isalpha((unsigned char) *text) &&
+         (*text != '$')) {
+    text++;
   }
 
   if (strncmp(text, prefix, strlen(prefix)) != 0) {
@@ -467,13 +486,25 @@ static struct DiskObject *scan_load_confconfig_disk_object(const char *bbs_locat
 static int scan_parse_int_tool(STRPTR *tool_types, const char *tool_name, int default_value)
 {
   STRPTR tool_text;
+  char prefixed_name[48];
   const char *value_text;
+  static const char *prefix_chars = "$%&'\"";
+  int prefix_index;
 
   if ((tool_types == NULL) || (tool_name == NULL)) {
     return default_value;
   }
 
   tool_text = FindToolType((STRPTR *) tool_types, (STRPTR) tool_name);
+  if (tool_text == NULL) {
+    for (prefix_index = 0; prefix_chars[prefix_index] != '\0'; prefix_index++) {
+      snprintf(prefixed_name, sizeof(prefixed_name), "%c%s", prefix_chars[prefix_index], tool_name);
+      tool_text = FindToolType((STRPTR *) tool_types, (STRPTR) prefixed_name);
+      if (tool_text != NULL) {
+        break;
+      }
+    }
+  }
   if (tool_text == NULL) {
     return default_value;
   }
@@ -519,12 +550,24 @@ static int scan_parse_conf_number_from_name(const char *name)
 static void scan_parse_text_tool(STRPTR *tool_types, const char *tool_name, char *output, size_t output_size)
 {
   STRPTR tool_text;
+  char prefixed_name[48];
+  static const char *prefix_chars = "$%&'\"";
+  int prefix_index;
 
   if ((tool_types == NULL) || (tool_name == NULL) || (output == NULL) || (output_size == 0U)) {
     return;
   }
 
   tool_text = FindToolType((STRPTR *) tool_types, (STRPTR) tool_name);
+  if (tool_text == NULL) {
+    for (prefix_index = 0; prefix_chars[prefix_index] != '\0'; prefix_index++) {
+      snprintf(prefixed_name, sizeof(prefixed_name), "%c%s", prefix_chars[prefix_index], tool_name);
+      tool_text = FindToolType((STRPTR *) tool_types, (STRPTR) prefixed_name);
+      if (tool_text != NULL) {
+        break;
+      }
+    }
+  }
   if (tool_text == NULL) {
     output[0] = '\0';
     return;
@@ -536,6 +579,7 @@ static void scan_parse_text_tool(STRPTR *tool_types, const char *tool_name, char
 static void scan_load_prefixed_paths(STRPTR *tool_types, const char *prefix, char paths[AE_MAX_AREA_PATHS][256], int *path_count)
 {
   int index;
+  int max_index;
   char tool_name[32];
 
   if ((tool_types == NULL) || (prefix == NULL) || (paths == NULL) || (path_count == NULL)) {
@@ -543,7 +587,12 @@ static void scan_load_prefixed_paths(STRPTR *tool_types, const char *prefix, cha
   }
 
   *path_count = 0;
-  for (index = 0; index < AE_MAX_AREA_PATHS; index++) {
+  max_index = AE_MAX_AREA_PATHS;
+  if (strcmp(prefix, "ULPATH") == 0) {
+    max_index = 1;
+  }
+
+  for (index = 0; index < max_index; index++) {
     snprintf(tool_name, sizeof(tool_name), "%s.%d", prefix, index + 1);
     scan_parse_text_tool(tool_types, tool_name, paths[index], 256);
     if (paths[index][0] != '\0') {
@@ -609,10 +658,8 @@ static int scan_load_confconfig_metadata(const char *bbs_location,
     "confconfig"
   };
   struct DiskObject *confconfig_object;
-  int index;
   int loaded_anything;
-  int max_to_store;
-  char tool_name[32];
+  int index;
 
   if ((bbs_location == NULL) || (*bbs_location == '\0') || (metadata == NULL)) {
     return -1;
@@ -626,33 +673,10 @@ static int scan_load_confconfig_metadata(const char *bbs_location,
                                                        metadata->confconfig_path,
                                                        sizeof(metadata->confconfig_path));
   if (confconfig_object != NULL) {
-    metadata->conference_count = scan_parse_int_tool(confconfig_object->do_ToolTypes, "NCONFS", 0);
-    max_to_store = metadata->conference_count;
-    if (max_to_store > AE_MAX_CONFERENCES) {
-      max_to_store = AE_MAX_CONFERENCES;
-    }
-
-    for (index = 0; index < max_to_store; index++) {
-      metadata->conferences[index].number = index + 1;
-
-      snprintf(tool_name, sizeof(tool_name), "NAME.%d", index + 1);
-      scan_parse_text_tool(confconfig_object->do_ToolTypes,
-                           tool_name,
-                           metadata->conferences[index].name,
-                           sizeof(metadata->conferences[index].name));
-
-      snprintf(tool_name, sizeof(tool_name), "LOCATION.%d", index + 1);
-      scan_parse_text_tool(confconfig_object->do_ToolTypes,
-                           tool_name,
-                           metadata->conferences[index].location,
-                           sizeof(metadata->conferences[index].location));
-
-      if ((metadata->conferences[index].name[0] != '\0') ||
-          (metadata->conferences[index].location[0] != '\0')) {
-        loaded_anything = 1;
-      }
-    }
-
+    /* Keep the resolved CONFCONFIG path from icon.library, but prefer the raw
+     * parser for numbered NAME.n / LOCATION.n items. On live systems those
+     * keys have proven more reliable when read directly from the stored bytes.
+     */
     FreeDiskObject(confconfig_object);
   }
 

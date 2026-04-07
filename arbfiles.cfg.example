@@ -1,13 +1,45 @@
 # arbfiles configuration
 #
-# This first discovery pass validates AEDoor launch and reads AmiExpress
-# conference metadata through CONFCONFIG. Standard Ami-Express installs
-# typically expose the BBS root through the BBS: assign, so that is the
-# default here.
+# `bbs_location`
+# Root of the Ami-Express install. Standard systems usually set this as
+# `BBS:`, which is why that is the default.
+#
+# `trash_path`
+# Optional trash folder for delete operations. Leave blank to disable trash and
+# use permanent delete only. Example:
+#   trash_path=Data:Trash
+#
+# `debug_enabled`
+# Set to `1` to write a debug log, or `0` to disable logging.
+#
+# `debug_log`
+# Output path for the debug log when `debug_enabled=1`.
+#
+# `disable_paging`
+# Set to `1` to keep `arbfiles` in non-stop mode so long screens do not trigger
+# Ami-Express paging prompts. Set to `0` to allow normal paging.
+#
+# `allow_hold_area`
+# Set to `1` to expose the per-conference `Hold/Held` special area when it
+# exists. Set to `0` to hide hold from the UI.
+#
+# `list_block_size`
+# Number of file entries to load at one time from a large DIR listing.
+# Smaller values use less memory but need more block changes. Larger values use
+# more memory but let you browse more files at once. Safe range:
+#   128 to 4096
+# Default:
+#   1024
+#
+# `start_in_current_conf`
+# Set to `1` to open in the user's current conference. Set to `0` to start at
+# the first discovered conference instead.
 
 bbs_location=BBS:
+trash_path=
 debug_enabled=1
 debug_log=T:arbfiles.log
 disable_paging=1
 allow_hold_area=1
+list_block_size=1024
 start_in_current_conf=1

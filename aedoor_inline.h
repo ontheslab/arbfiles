@@ -1,9 +1,16 @@
+/*
+ * Local AEDoor inline bindings copied from the proven door work.
+ *
+ * This stays close to the original library interface so the higher-level
+ * bridge can keep the rest of arbfiles tidy.
+ */
 #ifndef AEDOOR_INLINE_H
 #define AEDOOR_INLINE_H
 
 #include <exec/libraries.h>
 #include <exec/types.h>
 
+/* Library name, door constants, and data IDs used by arbfiles. */
 #define AEDoorName "AEDoor.library"
 
 struct DIFace {
@@ -36,6 +43,7 @@ struct DIFace {
 #define DT_ISANSI 541
 #define CON_CURSOR 705
 
+/* Inline library calls used by the bridge layer. */
 extern struct Library *AEDBase;
 
 struct DIFace * __CreateComm(__reg("a6") void *, __reg("d0") unsigned long node)="\tjsr\t-30(a6)";

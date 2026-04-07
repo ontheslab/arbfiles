@@ -1,0 +1,67 @@
+ARBFILES KEY CHART
+==================
+
+Global
+------
+
+- Q quit
+- R redraw
+- ? help
+- , and . previous / next conference
+- [ previous area
+- ] next area
+- { previous loaded file block
+- } next loaded file block
+- V full description
+
+Source Mode
+-----------
+
+- A move selection up
+- Z move selection down
+- G tag or untag selected file
+- W tag all files in the current loaded block
+- E tag all files in the current DIR
+- C clear all current tags
+- S select destination
+- D delete or trash file
+- T trash on/off
+  only shown when trash_path is configured
+
+Destination Mode
+----------------
+
+- S return to source mode
+- M move selected source file
+- { previous destination file block
+- } next destination file block
+- - previous destination store folder
+- = next destination store folder
+
+Delete Confirm
+--------------
+
+- T move file to trash
+- D permanently delete file
+- N cancel
+
+When trash is not configured:
+
+- Y confirm delete
+- N cancel
+
+Move Confirm
+------------
+
+- Y confirm move
+- N cancel
+
+When one or more files are tagged, M becomes a batch move for the tagged set
+in the current source DIR, including tagged files from other loaded blocks in
+that DIR.
+
+Orphan Entry Prompt
+-------------------
+
+- Y remove orphan listing entry
+- N cancel
