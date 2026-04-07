@@ -37,7 +37,7 @@
 
 bbs_location=BBS:
 trash_path=
-debug_enabled=1
+debug_enabled=0
 debug_log=T:arbfiles.log
 disable_paging=1
 allow_hold_area=1

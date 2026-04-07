@@ -146,7 +146,7 @@ void config_set_defaults(struct door_config *config)
   strncpy(config->debug_log, "T:arbfiles.log", sizeof(config->debug_log) - 1U);
   config->debug_log[sizeof(config->debug_log) - 1U] = '\0';
   config->trash_path[0] = '\0';
-  config->debug_enabled = 1;
+  config->debug_enabled = 0;
   config->disable_paging = 1;
   config->allow_hold_area = 1;
   config->start_in_current_conf = 1;

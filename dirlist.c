@@ -66,7 +66,7 @@ static int dirlist_line_is_new_file(const char *text)
   }
 
   ch = text[0];
-  return (ch != '\0') && (ch != ' ') && (ch != '\n');
+  return (ch != '\0') && (ch != ' ') && (ch != '\n') && (ch != '\r');
 }
 
 /* Entry extraction */
@@ -79,7 +79,11 @@ static void dirlist_extract_filename(const char *line, char *output, size_t outp
   }
 
   index = 0;
-  while ((line[index] != '\0') && (line[index] != ' ') && (index + 1U < output_size)) {
+  while ((line[index] != '\0') &&
+         (line[index] != ' ') &&
+         (line[index] != '\n') &&
+         (line[index] != '\r') &&
+         (index + 1U < output_size)) {
     output[index] = line[index];
     index++;
   }

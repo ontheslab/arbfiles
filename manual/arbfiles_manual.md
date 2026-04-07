@@ -75,6 +75,7 @@ These are the current config options:
 | `allow_hold_area` | Show or hide the `Hold/Held` special area |
 | `disable_paging` | Suppress Ami-Express paging while the door is running |
 | `list_block_size` | Loaded file-block size, clamped to `128..4096` |
+| `start_in_current_conf` | Start in the user's current conference when possible |
 | `debug_enabled` | Turn debug logging on or off |
 | `debug_log` | Log file path |
 

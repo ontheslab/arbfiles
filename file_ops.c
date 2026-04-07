@@ -292,7 +292,7 @@ static int file_ops_extract_entry_block(const char *listing_path,
 {
   FILE *input;
   FILE *output;
-  char line[256];
+  char line[1024];
   char line_filename[64];
   int copying_target;
   int found_target;

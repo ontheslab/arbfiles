@@ -28,7 +28,11 @@ static void tagset_extract_filename(const char *line, char *output, size_t outpu
   }
 
   index = 0;
-  while ((line[index] != '\0') && (line[index] != ' ') && (index + 1U < output_size)) {
+  while ((line[index] != '\0') &&
+         (line[index] != ' ') &&
+         (line[index] != '\n') &&
+         (line[index] != '\r') &&
+         (index + 1U < output_size)) {
     output[index] = line[index];
     index++;
   }
@@ -59,7 +63,7 @@ static int tagset_line_is_new_file(const char *text)
   }
 
   ch = text[0];
-  return (ch != '\0') && (ch != ' ') && (ch != '\n');
+  return (ch != '\0') && (ch != ' ') && (ch != '\n') && (ch != '\r');
 }
 
 static int tagset_ensure_capacity(struct tagset_data *tagset, int needed_count)

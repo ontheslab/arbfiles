@@ -1,6 +1,19 @@
 ARBFILES CHANGE LOG
 ===================
 
+1.0.4.92
+--------
+
+- fixed issues found during testing and code read-through
+- improved line handling for long or CR/LF-edited DIR files
+- release defaults now leave debug logging off unless you turn it on
+
+1.0.4.91
+--------
+
+- added clean carrier-loss and disconnect handling
+- batch moves now stop cleanly if the user drops mid-run
+
 1.0.4.89 to 1.0.4.90
 --------------------
 

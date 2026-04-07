@@ -31,6 +31,10 @@ Document version: `1.00`
 
 - `S` return to source mode
 - `M` move selected source file
+- `,` previous conference
+- `.` next conference
+- `[` previous destination `DIR` area
+- `]` next destination `DIR` area
 - `{` previous destination file block
 - `}` next destination file block
 - `-` previous destination store folder

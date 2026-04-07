@@ -773,18 +773,9 @@ static int load_browsed_conference_info(const struct aedoor_context *door,
   return status;
 }
 
-static int get_default_area_for_conference(const struct door_config *config,
-                                           const struct ae_current_conference_info *conference)
+static int get_default_area_for_conference(const struct ae_current_conference_info *conference)
 {
   if (conference == NULL) {
-    return 1;
-  }
-
-  if (conference->base.dir_count > 0) {
-    return 1;
-  }
-
-  if (conference_has_hold_area(config, conference)) {
     return 1;
   }
 
@@ -899,7 +890,6 @@ static const char *resolve_source_folder_path(const struct door_config *config,
 static int batch_move_tagged_set(const struct door_config *config,
                                  struct aedoor_context *door,
                                  const struct ae_current_conference_info *source_conference,
-                                 const struct ae_current_conference_info *destination_conference,
                                  int active_area,
                                  const char *destination_folder,
                                  const char *destination_listing_path,
@@ -1415,7 +1405,7 @@ int main(int argc, char **argv)
   delete_mode = UI_DELETE_NONE;
   ui_mode = UI_MODE_SOURCE;
   if (conference_status == 0) {
-    active_area = get_default_area_for_conference(&config, &g_current_conference);
+    active_area = get_default_area_for_conference(&g_current_conference);
     reset_tag_scope_for_source(&g_current_conference, active_area, &g_dirlist);
   }
   destination_status = load_browsed_conference_info(&door,
@@ -1425,7 +1415,7 @@ int main(int argc, char **argv)
                                                     error_text,
                                                     (int) sizeof(error_text));
   if (destination_status == 0) {
-    destination_area = get_default_area_for_conference(&config, &g_destination_conference);
+    destination_area = get_default_area_for_conference(&g_destination_conference);
     destination_folder_index = get_default_destination_folder_for_area(&g_destination_conference, destination_area);
   }
 
@@ -1483,7 +1473,7 @@ int main(int argc, char **argv)
                                                           error_text,
                                                           (int) sizeof(error_text));
         if (destination_status == 0) {
-          destination_area = get_default_area_for_conference(&config, &g_destination_conference);
+          destination_area = get_default_area_for_conference(&g_destination_conference);
           destination_block_start_entry = 0L;
           destination_folder_index = get_default_destination_folder_for_area(&g_destination_conference, destination_area);
         } else {
@@ -1506,7 +1496,7 @@ int main(int argc, char **argv)
                                                          error_text,
                                                          (int) sizeof(error_text));
         if (conference_status == 0) {
-          active_area = get_default_area_for_conference(&config, &g_current_conference);
+          active_area = get_default_area_for_conference(&g_current_conference);
           reset_tag_scope_for_source(&g_current_conference, active_area, &g_dirlist);
         } else {
           active_area = 1;
@@ -1554,7 +1544,6 @@ int main(int argc, char **argv)
         move_status = batch_move_tagged_set(&config,
                                             &door,
                                             &g_current_conference,
-                                            &g_destination_conference,
                                             active_area,
                                             destination_folder,
                                             g_destination_dirlist.listing_path,
