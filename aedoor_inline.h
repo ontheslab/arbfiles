@@ -41,6 +41,7 @@ struct DIFace {
 #define BB_PURGELINEEND 524
 #define BB_NONSTOPTEXT 525
 #define BB_LINECOUNT 526
+#define DT_LINELENGTH 122
 #define DT_ISANSI 541
 #define CON_CURSOR 705
 

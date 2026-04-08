@@ -1,5 +1,12 @@
 # ARBFILES Change Log
 
+## 1.0.4.96
+
+- fixed screen alignment issues found while checking the shared screens
+- cleaned up label spacing on progress and confirm displays
+- added AEDoor screen-height query so the door can adapt to terminal height
+- added build/ to .gitignore
+
 ## 1.0.4.95
 
 - prepared the first public release package

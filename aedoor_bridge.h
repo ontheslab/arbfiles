@@ -32,6 +32,7 @@ int aedoor_prepare_session(struct aedoor_context *context, const struct door_con
 void aedoor_clear_screen(struct aedoor_context *context);
 void aedoor_write_line(struct aedoor_context *context, const char *text);
 void aedoor_write_text(struct aedoor_context *context, const char *text);
+int aedoor_get_screen_lines(struct aedoor_context *context);
 int aedoor_poll_key(struct aedoor_context *context, long *key_value);
 int aedoor_user_online(struct aedoor_context *context);
 int aedoor_session_lost(const struct aedoor_context *context);

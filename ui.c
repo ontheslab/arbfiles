@@ -25,6 +25,7 @@
 #define UI_PREVIEW_LINES 2
 #define UI_MODAL_DESCRIPTION_WIDTH 79
 #define UI_MODAL_BODY_LINES 16
+#define UI_LABEL_WIDTH 6
 
 #define UI_COLOUR_RESET   "\033[0m"
 #define UI_COLOUR_CYAN    "\033[36m"
@@ -293,9 +294,10 @@ static void ui_write_label_value_line(struct aedoor_context *door,
     if (has_colon) {
       snprintf(line,
                sizeof(line),
-               "%s%s%s%s:%s %s%s%s",
+               "%s%s%-*s%s:%s %s%s%s",
                indent,
                UI_COLOUR_CYAN,
+               UI_LABEL_WIDTH,
                display_label,
                UI_COLOUR_YELLOW,
                UI_COLOUR_RESET,
@@ -305,9 +307,10 @@ static void ui_write_label_value_line(struct aedoor_context *door,
     } else {
       snprintf(line,
                sizeof(line),
-               "%s%s%s%s %s%s%s",
+               "%s%s%-*s%s %s%s%s",
                indent,
                UI_COLOUR_CYAN,
+               UI_LABEL_WIDTH,
                display_label,
                UI_COLOUR_RESET,
                UI_COLOUR_WHITE,
@@ -316,7 +319,7 @@ static void ui_write_label_value_line(struct aedoor_context *door,
     }
     aedoor_write_line(door, line);
   } else {
-    snprintf(line, sizeof(line), "%s %s", label, value);
+    snprintf(line, sizeof(line), "%s%-*s%s %s", indent, UI_LABEL_WIDTH, display_label, has_colon ? ":" : "", value);
     aedoor_write_line(door, line);
   }
 }
@@ -422,8 +425,6 @@ void ui_show_move_progress(struct aedoor_context *door,
                            const char *source_store,
                            const char *destination_store)
 {
-  char line[320];
-
   if (door == NULL) {
     return;
   }
@@ -433,7 +434,6 @@ void ui_show_move_progress(struct aedoor_context *door,
   aedoor_write_line(door, "");
   ui_write_label_value_line(door, "File:", filename != NULL ? filename : "(unknown)");
   ui_write_label_value_line(door, "From:", source_store != NULL ? source_store : "(unknown)");
-  snprintf(line, sizeof(line), "To: %s", destination_store != NULL ? destination_store : "(unknown)");
   ui_write_label_value_line(door, "To:", destination_store != NULL ? destination_store : "(unknown)");
   aedoor_write_line(door, "");
   ui_write_green_line(door, "Please wait...");

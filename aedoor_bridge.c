@@ -198,6 +198,18 @@ int aedoor_prepare_session(struct aedoor_context *context, const struct door_con
   return 0;
 }
 
+/* Screen helpers */
+int aedoor_get_screen_lines(struct aedoor_context *context)
+{
+  long value;
+
+  value = bridge_fetch_data_value(context, DT_LINELENGTH, 0);
+  if (value < 12) {
+    return 23;
+  }
+  return (int) value;
+}
+
 /* Output and input helpers */
 void aedoor_clear_screen(struct aedoor_context *context)
 {

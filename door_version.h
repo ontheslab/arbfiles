@@ -5,6 +5,6 @@
 #define DOOR_VERSION_H
 
 /* Keep this in step with each hand-off build. */
-#define ARBFILES_VERSION "1.0.4.95"
+#define ARBFILES_VERSION "1.0.4.96"
 
 #endif

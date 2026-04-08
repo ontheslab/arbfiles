@@ -126,4 +126,4 @@ Plain text versions are also in the same folder.
 
 ## Version
 
-`arbfiles 1.0.4.95`
+`arbfiles 1.0.4.96`
